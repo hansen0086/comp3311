@@ -1,0 +1,64 @@
+#!/usr/bin/php
+<?php
+require("a2.php");
+$usage = "Usage: $argv[0] ActorName";
+$db = dbConnect(DB_CONNECTION);
+//implement this with bfs
+
+
+if (count($argv)!=3){
+    echo "Usage: name1 name2\n";
+    return;
+}
+
+$start_name = $argv[1];
+$end_name = $argv[2];
+
+//lower the strings
+
+$start_name = strtolower($start_name);
+$end_name = strtolower($end_name);
+
+
+
+$curr_name = $start_name;
+while(true){
+    //find all the actors that are in the same film as $curr_name
+
+    //first, find all the film that curr_name has acted
+    $q = "select id from actor where lower(name)= '$curr_name'";
+    $r = dbQuery($db, $q);
+    
+    $actor_id = dbNext($r)[0];
+
+    $q = "select movie_id from acting where actor_id = ".$actor_id;
+    $r = dbQuery($db, $q);
+
+    $i=0;
+    while($temp_id = dbNext($r)){
+        //echo "$temp_id[0]\n";
+        //echo "$curr_name\n";
+        
+        $id = $temp_id[0];
+        $movies_of_an_actor[$curr_name][$i] =$id;
+        //echo $movies_of_an_actor[$curr_name][$i]."\n";
+        $i++;
+    }
+    echo "$i movies found\n";
+    break;
+    
+}
+//print all the movies that $curr_name joins
+
+$i=0;
+
+while($i< count($movies_of_an_actor[$curr_name])){
+    echo $movies_of_an_actor[$curr_name][$i]."\n";
+    $i++;
+}
+
+
+
+
+
+?>
