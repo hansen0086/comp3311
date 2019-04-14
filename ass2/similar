@@ -1,0 +1,120 @@
+#!/usr/bin/php
+<?php
+require("a2.php");
+
+
+$usage = "Usage: $argv[0] ActorName";
+$db = dbConnect(DB_CONNECTION);
+
+
+if(count($argv)!=3){
+    echo "Usage: Movie_name outpu_number\n";
+    return;
+
+}
+
+$movie_name = $argv[1];
+$output_num = $argv[2];
+$movie_name = strtolower($movie_name);
+//echo "$movie_name";
+//first find the actual target movie's id 
+
+//find if there there is a name match
+
+$q = "select id from movie where lower(title) = '$movie_name'";
+
+$result = dbQuery($db, $q);
+$movie_id = dbNext($result)[0];
+
+
+if(!(isset($movie_id))){
+    $movie_name = '%'.$movie_name.'%';
+    $q ="select id from movie where lower(title) like '$movie_name' order by case when year is null then 1 else 0 end,year desc"; 
+    $result = dbQuery($db, $q);
+    $movie_id = dbNext($result)[0];
+}
+//echo "$movie_id\n";
+
+//then, find its genres to an array
+
+$q = "select genre from genre where movie_id = ".$movie_id;
+
+$result = dbQuery($db,$q);
+$genre = dbNext($result)[0];
+while($t = dbNext($result)){
+    $genre= $genre."&".$t[0];
+}
+//echo "$genre\n";
+
+$genres = explode('&', $genre);
+$genres_num = count($genres);
+//build the genre view
+$q = "create or replace view temp_genre_num(movie_id, genre_num) as select movie_id, genre_num from(select movie_id, count(genre) as genre_num from genre where genre ='$genres[0]' ";
+$i=1;
+while($i< $genres_num){
+    $q = $q."or genre = '$genres[$i]' ";
+    $i++;
+}
+    $q = $q."group by movie_id) b order by genre_num desc";
+
+    $result = dbQuery($db, $q);
+
+
+
+
+//find the target keywords
+$q = "select keyword from keyword where movie_id = ". $movie_id;
+$result = dbQuery($db,$q);
+$keyword = dbNext($result)[0];
+while($t = dbNext($result)){
+    $keyword= $keyword."&".$t[0];
+}
+//echo "$keyword\n";
+
+$keywords = explode('&', $keyword);
+$keywords_num = count($keywords);
+
+
+
+
+//build the keywords view
+$q = "create or replace view temp_keyword_num(movie_id, keyword_num) as select movie_id, keyword_num from(select movie_id, count(keyword) as keyword_num from keyword where keyword ='$keywords[0]' ";
+$i=1;
+while($i< $keywords_num){
+    $q = $q."or keyword = '$keywords[$i]' ";
+    $i++;
+}
+    $q = $q."group by movie_id) b order by keyword_num desc";
+
+    $result = dbQuery($db, $q);
+
+    
+//now we have all views we have to achieve the final
+
+
+$q = "select title, year, case when genre_num is null then 0 else genre_num end, case when keyword_num is null then 0 else keyword_num end, imdb_score, num_voted_users from movie left outer join temp_genre_num on movie.id = temp_genre_num.movie_id left outer join temp_keyword_num on movie.id = temp_keyword_num.movie_id join rating on rating.movie_id = movie.id where movie.id != ".$movie_id." order by genre_num desc, keyword_num desc, imdb_score desc, num_voted_users desc limit ".$output_num;
+
+
+//print out the final result
+$result = dbQuery($db, $q);
+    
+    $i = 1;
+while ($t = dbNext($result)) {
+  echo "$i. $t[0] ";
+  if (isset($t[1]))
+    echo "($t[1]) ";
+  if (isset($t[2]))
+    echo "[$t[2], ";
+  if (isset($t[3]))
+      echo "$t[3], ";
+  if (isset($t[4]))
+      echo "$t[4], $t[5]]";
+  echo "\n";
+  $i++;
+}
+
+
+
+
+
+?>

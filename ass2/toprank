@@ -1,0 +1,117 @@
+#!/usr/bin/php
+<?php
+
+// include the common PHP code file
+require("a2.php");
+// PROGRAM BODY BEGINS
+
+$usage = "Usage: $argv[0] ActorName";
+$db = dbConnect(DB_CONNECTION);
+
+// Check arguments
+if (count($argv) <4 or count($argv) >5) exit("$usage\n");
+
+// Get the return results
+
+
+// if no genre is selected
+if (count($argv) ==4){
+$top_num = $argv[1];
+$start_year = $argv[2];
+$end_year = $argv[3];
+
+//echo "top_num is $top_num\n";
+//echo "end year is $end_year\n";
+}
+elseif (count($argv)==5){
+$genre = $argv[1];
+$top_num = $argv[2];
+$start_year = $argv[3];
+$end_year = $argv[4];
+}
+
+//case of no genre selected
+
+if(count($argv) ==4){
+    $q = "select title, year, content_rating, lang, imdb_score, num_voted_users from movie join rating on movie.id = rating.movie_id where year>=".$start_year." and year <= ".$end_year." order by imdb_score desc, num_voted_users desc limit ".$top_num;
+    
+   $r = dbQuery ($db, $q);
+
+    $i = 1;
+while ($t = dbNext($r)) {
+  echo "$i. $t[0] ";
+  if (!empty($t[1]))
+    echo "($t[1] ";
+  if (!empty($t[2]))
+    echo "$t[2], ";
+  if (!empty($t[3]))
+      echo "$t[3]) [";
+       if (!empty($t[4]))
+      echo "$t[4], $t[5]]";
+  echo "\n";
+  $i++;
+}
+}
+//case when genres are selected
+
+if (count($argv) ==5){
+
+//need to create a view of all the movie_id that are in this genre
+
+
+// target
+
+//$q="create or replace view temp_movie(movie_id) as select movie_id from(select movie_id, count(genre) from genre where genre = 'Sci-Fi' or genre = 'Adventure' or genre = 'Action' group by movie_id  order by count(genre) desc) as table1 where count =3";
+	
+
+
+
+
+$genres = explode('&', $genre);
+$genres_num = count($genres);
+//echo "$genres_num genres are specified\n";
+
+
+$q = "create or replace view temp_movie(movie_id) as select movie_id from(select movie_id, count(genre) from genre where genre ='$genres[0]' ";
+$i=1;
+while($i< $genres_num){
+    $q = $q."or genre = '$genres[$i]' ";
+    $i++;
+}
+    $q = $q."group by movie_id) b where b.count =".$genres_num;
+
+    $q2 = "create or replace view temp2 (id, title, year, content_rating, lang, imdb_score,num_voted_users) as select id, title, year, content_rating, lang, imdb_score, num_voted_users from movie join rating on movie.id = rating.movie_id where year>=".$start_year." and year <= ".$end_year." order by imdb_score desc, num_voted_users desc";
+    //echo $q;dbNext
+    $r = dbQuery ($db, $q);
+    $r2 = dbQuery ($db, $q2);
+
+    $q3 = "select title, year, content_rating, lang, imdb_score, num_voted_users from temp2 join temp_movie on temp2.id = temp_movie.movie_id order by imdb_score desc, num_voted_users desc limit ".$top_num;
+    $result = dbQuery($db, $q3);
+    
+    $i = 1;
+while ($t = dbNext($result)) {
+  echo "$i. $t[0] ";
+  if (!empty($t[1]))
+    echo "($t[1] ";
+  if (!empty($t[2]))
+    echo "$t[2], ";
+  if (!empty($t[3]))
+      echo "$t[3]) [";
+       if (!empty($t[4]))
+      echo "$t[4], $t[5]]";
+  echo "\n";
+  $i++;
+}
+
+
+}
+
+//echo $val;
+//$q = "select title, year, content_rating, lang, imdb_score, num_voted_users from movie join rating on movie.id = rating.movie_id order by imdb_score desc, num_voted_users desc";
+//$r = dbQuery($db, mkSQL($q, $val));
+//echo $val;
+// Iterate through the results and print
+
+
+
+?>

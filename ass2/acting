@@ -1,0 +1,51 @@
+#!/usr/bin/php
+<?php
+
+//
+// pg - print all PG and PG-13 movies of a given year
+//
+
+// include the common PHP code file
+require("a2.php");
+
+
+
+// PROGRAM BODY BEGINS
+
+$usage = "Usage: $argv[0] ActorName";
+$db = dbConnect(DB_CONNECTION);
+
+// Check arguments
+if (count($argv) < 2) exit("$usage\n");
+
+// Get the return results
+$val = $argv[1];
+$val = strtolower($val);
+$val = '%'.$val.'%';
+//echo $val;
+$q = "select title, director.name, year, content_rating, imdb_score from movie join rating on movie.id = rating.movie_id join director on movie.director_id = director.id join acting on movie.id = acting.movie_id join actor on acting.actor_id = actor.id where lower(actor.name) like %s order by year, title";
+$r = dbQuery($db, mkSQL($q, $val));
+//echo $val;
+// Iterate through the results and print
+
+
+
+$i = 1;
+while ($t = dbNext($r)) {
+  echo "$i. $t[0] ";
+  if (!empty($t[1]))
+    echo "-- $t[1] (";
+  if (!empty($t[2]))
+    echo "$t[2], ";
+  if (!empty($t[3]))
+      echo "$t[3], ";
+       if (!empty($t[4]))
+      echo "$t[4]";
+  echo ")\n";
+  
+  
+  $i++;
+}
+
+
+?>
