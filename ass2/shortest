@@ -4,8 +4,8 @@ require("a2.php");
 $usage = "Usage: $argv[0] ActorName";
 $db = dbConnect(DB_CONNECTION);
 //implement this with bfs
-
-
+$found_path=0;
+$total_comparison= 0;
 if (count($argv)!=3){
     echo "Usage: name1 name2\n";
     return;
@@ -19,44 +19,91 @@ $end_name = $argv[2];
 $start_name = strtolower($start_name);
 $end_name = strtolower($end_name);
 
+$to_do_name = new SplQueue();
 
+$to_do_name ->enqueue($start_name);
 
-$curr_name = $start_name;
-while(true){
-    //find all the actors that are in the same film as $curr_name
+//the big loop
+while($to_do_name->count()>0){
+    $curr_actor_name = $to_do_name->dequeue();
+    $curr_actor_name = strtolower($curr_actor_name);
+    $curr_actor_name = str_replace("'","''",$curr_actor_name);
+    $visited_name = [$curr_actor_name];
+    echo "start doing name $curr_actor_name\n";
+    //find all the actors that are in the same film as $curr_actor_name
 
     //first, find all the film that curr_name has acted
-    $q = "select id from actor where lower(name)= '$curr_name'";
+    $q = "select id from actor where lower(name)= '".$curr_actor_name."'";
     $r = dbQuery($db, $q);
     
     $actor_id = dbNext($r)[0];
-
+    //chirs evans's id = 1598
+    echo "which id is $actor_id\n";
     $q = "select movie_id from acting where actor_id = ".$actor_id;
     $r = dbQuery($db, $q);
 
     $i=0;
+    // build the movies that curr_name has played
     while($temp_id = dbNext($r)){
         //echo "$temp_id[0]\n";
-        //echo "$curr_name\n";
+        //echo "$curr_actor_name\n";
         
         $id = $temp_id[0];
-        $movies_of_an_actor[$curr_name][$i] =$id;
-        //echo $movies_of_an_actor[$curr_name][$i]."\n";
+        $movies_id_of_an_actor[$curr_actor_name][$i] =$id;
+        //echo $movies_id_of_an_actor[$curr_actor_name][$i]."\n";
         $i++;
     }
-    echo "$i movies found\n";
-    break;
+    
+    
+    //$count_movies_id_of_an_actor[$curr_actor_name] = $i ;
+    //echo $count_movies_id_of_an_actor[$curr_actor_name]." movies found\n";
+
+    //for each movie, find all actors related to it
+    
+    $i = 0;
+    while ($i < count($movies_id_of_an_actor[$curr_actor_name])) {
+        $curr_movie_id = $movies_id_of_an_actor[$curr_actor_name][$i];
+        echo "now doing movie $curr_movie_id\n";
+        $q = "select name from acting join actor on acting.actor_id = actor.id where movie_id = ".$curr_movie_id."and lower(name) not like '%".$curr_actor_name."%'";
+        $r = dbQuery($db, $q);
+        //for each actors in a movie
+        while($next_actor_name = dbNext($r)[0]){
+            $next_actor_name = strtolower($next_actor_name);
+            $prev_actor_of_actor_by_movie_id[$next_actor_name][$curr_movie_id] = $curr_actor_name;
+            echo "comparing $next_actor_name and $end_name\n";
+            $total_comparison++;
+
+            if($next_actor_name == $end_name){
+                echo "$curr_actor_name\n path found!!!!!!!!!!!!!\n\n\n";
+                $found_path ++;
+            }
+          
+            //only enqueue if there are no any solution found
+            if($found_path == 0){
+                if(!in_array($next_actor_name, $visited_name)){
+                    $to_do_name ->enqueue($next_actor_name);
+                    //$visited_name[] = $next_actor_name;
+                }
+            }    
+
+        }
+        echo "\n\n";
+        $i++;
+    }
+    
     
 }
-//print all the movies that $curr_name joins
 
+echo "Total comparison: $total_comparison, $found_path paths found\n";
+//print all the movies that $curr_actor_name joins
+/*
 $i=0;
 
-while($i< count($movies_of_an_actor[$curr_name])){
-    echo $movies_of_an_actor[$curr_name][$i]."\n";
+while($i< count($movies_id_of_an_actor[$curr_actor_name])){
+    echo $movies_id_of_an_actor[$curr_actor_name][$i]."\n";
     $i++;
 }
-
+*/
 
 
 
