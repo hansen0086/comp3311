@@ -67,11 +67,43 @@ while($to_do_name->count()>0){
         $q = "select name from acting join actor on acting.actor_id = actor.id where movie_id = ".$curr_movie_id."and lower(name) not like '%".$curr_actor_name."%'";
         $r = dbQuery($db, $q);
         //for each actors in a movie
+        //first while try to find a solution, if found, set boolean as true
+
+        $solution_found=false;
+        while($next_actor_name = dbNext($r)[0]){
+            $next_actor_name = strtolower($next_actor_name);
+            if($next_actor_name == $end_name){
+                $solution_found= true;
+            }
+
+
+        }
+
+
+
+        $r = dbQuery($db,$q);
+
         while($next_actor_name = dbNext($r)[0]){
             $next_actor_name = strtolower($next_actor_name);
             $prev_actor_of_actor_by_movie_id[$next_actor_name][$curr_movie_id] = $curr_actor_name;
             echo "comparing $next_actor_name and $end_name\n";
             $total_comparison++;
+
+            if($solution_found==true){
+                if($next_actor_name!=$end_name){
+                    continue;
+                }
+                else{
+                    
+                }
+
+            }
+            else{
+                
+            }
+
+
+
 
             if($next_actor_name == $end_name){
                 echo "$curr_actor_name\n path found!!!!!!!!!!!!!\n\n\n";
