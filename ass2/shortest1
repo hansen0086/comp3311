@@ -93,8 +93,28 @@ echo"$debug\n";
 
 //almost finish, try to build each string
 
-//foreach($prev[$end_name] as )
 
+/*$curr_name = $end_name;
+$string[] = $end_name;
+while(($previous_nodes = $prev[$curr_name])!= $start_name){
+    foreach($previous_nodes as $previous_node){
+        $string[] = $previous_node;
+    }
+}
+*/
+//while($prev[$end_name]){
+    $string = dfs($end_name, "");
+    echo "$string\n";
+//}
+/*
+
+$to_do_stack = new splStack();
+$to_do_name ->push($end_name);
+
+while($to_do_name->count()>0){
+    $curr_name = $todo_stack->pop();
+}
+*/
 
 
 /*
@@ -102,6 +122,36 @@ foreach ($visited_name as $visited){
     echo "$visited visited\n";
 }
 */
+
+//return 
+//first time is $end_name
+function dfs($name, $string){
+    global $start_name;
+    global $prev;
+    global $end_name;
+    //first time
+    if($name == $end_name){
+            foreach($prev[$name] as $previous_name){
+            echo "calling ($previous_name, $end_name)\n";
+            return dfs($previous_name,$end_name."&".$previous_name);
+        }
+    }
+    //last time
+    if($name == $start_name){
+        return $string;
+    }
+    else{
+            foreach( $prev[$name] as $previous_name){
+                
+                $string = $string."&".$previous_name;
+                echo "calling ($previous_name,$string)\n";
+                return dfs($previous_name,$string);
+            }
+           
+    }
+}
+
+
 
 
 

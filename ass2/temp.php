@@ -1,14 +1,12 @@
 #!/usr/bin/php
 <?php
-    $num1=0;
-    $num2 = 1;
-    $string = "hello";
-    $array = [$num1];
-    $array[] = $num2;
-    $array[] = $string;
-    $i =0;
-    while($i< count($array)){
-        echo "$array[$i]\n";
-        $i++;
-    }
+   $array[0]=0;
+   $array[1]=1;
+   $array[2]=2;
+   $array[3]=3;
+
+   unset($array[1]);
+   foreach($array as $num){
+       echo "$num\n";
+   }
 ?>
