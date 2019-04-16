@@ -10,7 +10,7 @@ $db = dbConnect(DB_CONNECTION);
 $solution_num=0;
 $start_name = $argv[1];
 $end_name = $argv[2];
-
+$debug=0;
 //lower the strings
 
 $start_name = strtolower($start_name);
@@ -28,17 +28,20 @@ while($to_do_name->count()>0){
     
     $curr_actor_name = $to_do_name->dequeue();
     $curr_actor_name = strtolower($curr_actor_name);
-    $curr_actor_name = str_replace("'","''",$curr_actor_name);
-    echo "curr actor is $curr_actor_name\n";
+   
+    //echo "curr actor is $curr_actor_name\n";
 
     //find all the neighbour names
     $neighbour_actors_ids = actor_ids_of_related_actor($curr_actor_name);
 
     //if found the end name
     if(in_array($end_name_id, $neighbour_actors_ids)){
-        $solution_num ++;
-        $prev[$end_name][]=$curr_actor_name;
-
+        if(!isset($prev[$end_name]) or !in_array($curr_actor_name, $prev[$end_name])){
+            $found_solution=1;
+            $solution_num ++;
+            $prev[$end_name][]=$curr_actor_name;
+            $debug++;
+        }
 
     }
     //if not found
@@ -47,24 +50,32 @@ while($to_do_name->count()>0){
 
         foreach($neighbour_actors_ids as $next_actor_id){
             $next_actor_name = actor_id_to_name($next_actor_id);
+            //echo "try to compare $next_actor_name and $end_name\n";
             if( relation_movie_ids($next_actor_name,$end_name)!=null){
                 //echo "found $next_actor_name, $end_name as end\n";
-                $prev[$end_name][]=$next_actor_name;
-                $found_solution=1;
-                $solution_num++;
+                if(!isset($prev[$end_name]) or !in_array($next_actor_name, $prev[$end_name])){
+                    $prev[$end_name][]=$next_actor_name;
+                    $found_solution=1;
+                    $debug++;
+                    $solution_num++;
+                }
             }
 
         }
         foreach($neighbour_actors_ids as $next_actor_id){
             $next_actor_name = actor_id_to_name($next_actor_id);
 
-            if( !in_array($next_actor_name, $visited_name)){
-                echo "$next_actor_name\n";
-                $prev[$next_actor_name][]= $curr_actor_name;
-                $visited_name[] = $next_actor_name;
-            }
+            
             if($found_solution==0  && !in_array($next_actor_name, $visited_name)){
                 $to_do_name ->enqueue( $next_actor_name);
+            }
+            if( !in_array($next_actor_name, $visited_name)){
+                //echo "$next_actor_name\n";
+                if(!isset($prev[$next_actor_name]) or !in_array($curr_actor_name, $prev[$next_actor_name])){
+                    $prev[$next_actor_name][]= $curr_actor_name;
+                }    
+
+                $visited_name[] = $next_actor_name;
             }
         }
     }
@@ -77,7 +88,7 @@ echo "$solution_num solution found\n";
 foreach($prev[$end_name] as $actor_name){
     echo "prev before $end_name is $actor_name\n";
 }
-
+echo"$debug\n";
 
 
 //almost finish, try to build each string
@@ -110,6 +121,7 @@ foreach ($visited_name as $visited){
 
 //return id of a actor given by his/her name
 function actor_name_to_id($name){
+    $name = str_replace("'","''",$name);
     $db = dbConnect(DB_CONNECTION);
     $name = strtolower($name);
     $q = "select id from actor where lower(name) = '".$name."'";
@@ -128,6 +140,7 @@ function actor_id_to_name($id){
 
 //return movie_ids that 2 actors are related on, return null if no such match
 function relation_movie_ids($name1, $name2){
+   
     $db = dbConnect(DB_CONNECTION);
     $id1 = actor_name_to_id($name1);
     $id2= actor_name_to_id($name2);
