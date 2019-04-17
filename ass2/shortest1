@@ -85,88 +85,93 @@ while($to_do_name->count()>0){
 echo "$solution_num solution found\n";
 
 
-foreach($prev[$end_name] as $actor_name){
+foreach($prev[$end_name] as $actor_name){ 
     echo "prev before $end_name is $actor_name\n";
 }
 echo"$debug\n";
 
 
-//almost finish, try to build each string
+$string;
+$string_index=0;
+printPaths($end_name); 
 
-
-/*$curr_name = $end_name;
-$string[] = $end_name;
-while(($previous_nodes = $prev[$curr_name])!= $start_name){
-    foreach($previous_nodes as $previous_node){
-        $string[] = $previous_node;
-    }
+foreach($string as $str){
+    echo "$str";
 }
-*/
-//while($prev[$end_name]){
-    $string = dfs($end_name, "");
-    echo "$string\n";
-//}
-/*
-
-$to_do_stack = new splStack();
-$to_do_name ->push($end_name);
-
-while($to_do_name->count()>0){
-    $curr_name = $todo_stack->pop();
-}
-*/
 
 
 /*
-foreach ($visited_name as $visited){
-    echo "$visited visited\n";
+foreach($string as $str){
+    $final_strings = null;  
+    store_movie_string
+    array_push($final_string, )
 }
 */
 
-//return 
-//first time is $end_name
-function dfs($name, $string){
+
+
+
+
+
+
+
+
+
+
+
+
+
+//this part of code(printPaths, printPathsRecur) is copied from https://www.geeksforgeeks.org/given-a-binary-tree-print-all-root-to-leaf-paths/
+//and changed from language java to php
+function printPaths($node){
+    
+        $path[]=null;
+        printPathsRecur($node, $path, 0); 
+    } 
+
+function printPathsRecur($node, $path, $pathLen){ 
+
     global $start_name;
     global $prev;
-    global $end_name;
-    //first time
-    if($name == $end_name){
-            foreach($prev[$name] as $previous_name){
-            echo "calling ($previous_name, $end_name)\n";
-            return dfs($previous_name,$end_name."&".$previous_name);
+    if ($node == null){
+        return; 
+    }
+    
+    /* append this node to the path array */
+    $path[$pathLen] = $node; 
+    $pathLen++; 
+
+    /* it's a leaf, so print the path that led to here  */
+    if (!isset($prev[$node])) {
+        storeArray($path, $pathLen); 
+    }
+    else 
+    { 
+        /* otherwise try both subtrees */
+        foreach($prev[$node] as $prev_name){
+            printPathsRecur($prev_name, $path, $pathLen);
         }
-    }
-    //last time
-    if($name == $start_name){
-        return $string;
-    }
-    else{
-            foreach( $prev[$name] as $previous_name){
-                
-                $string = $string."&".$previous_name;
-                echo "calling ($previous_name,$string)\n";
-                return dfs($previous_name,$string);
+    } 
+} 
+
+function storeArray($array, $len) {
+        global $string;
+        global $string_index;
+        $i=$len-1;
+        
+        while ($i >= 0)  
+        { 
+            if(!isset($string[$string_index])){
+                $string[$string_index]=$array[$i];
             }
-           
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            else{
+                $string[$string_index]= $string[$string_index]."&".$array[$i];
+            } 
+            $i--;
+        } 
+        $string[$string_index]= $string[$string_index]."\n";
+        $string_index++;
+    } 
 
 
 //return id of a actor given by his/her name
@@ -201,11 +206,24 @@ function relation_movie_ids($name1, $name2){
     while($movie_id = dbNext($r)[0]){
 
         $movie_ids[] = $movie_id;
-        
     }
  
     return $movie_ids;
 }
+
+//from $movie_ids array into movie_names_array
+function relation_movie_names($movie_ids){
+    
+    $db = dbConnect(DB_CONNECTION);
+    foreach ($movie_ids as $movie_id){
+        $q = "select title from movie where id = ".$movie_id;
+        $r = dbQuery($db, $q);
+        $movie_names[] = dbNext($r)[0];
+    }
+   
+    return $movie_names;
+}
+
 
 //return the movie_ids of an actor
 
