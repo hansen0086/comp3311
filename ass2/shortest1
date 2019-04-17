@@ -85,7 +85,7 @@ while($to_do_name->count()>0){
 echo "$solution_num solution found\n";
 
 
-foreach($prev[$end_name] as $actor_name){ 
+foreach($prev[$end_name] as $actor_name){
     echo "prev before $end_name is $actor_name\n";
 }
 echo"$debug\n";
@@ -100,25 +100,25 @@ foreach($string as $str){
 }
 
 
-/*
+
 foreach($string as $str){
-    $final_strings = null;  
-    store_movie_string
-    array_push($final_string, )
+    global $end_name;
+    $name_array = explode('&', $str);
+    $curr_index=0;
+    $next_index=1;
+        echo "\n";
+    while($name_array[$curr_index]!=$end_name){
+        $curr_name = $name_array[$curr_index];
+        $next_name = $name_array[$next_index];
+        echo "calling $curr_name and $next_name\n";
+        $relation_movies_ids = relation_movie_ids($curr_name, $next_name);
+        $relation_movies_names = relation_movie_names($relation_movies_ids);
+        echo 
+        $curr_index++;
+        $next_index++;
+        
+    }
 }
-*/
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 //this part of code(printPaths, printPathsRecur) is copied from https://www.geeksforgeeks.org/given-a-binary-tree-print-all-root-to-leaf-paths/
@@ -169,7 +169,7 @@ function storeArray($array, $len) {
             } 
             $i--;
         } 
-        $string[$string_index]= $string[$string_index]."\n";
+        $string[$string_index]= $string[$string_index];
         $string_index++;
     } 
 
@@ -179,9 +179,12 @@ function actor_name_to_id($name){
     $name = str_replace("'","''",$name);
     $db = dbConnect(DB_CONNECTION);
     $name = strtolower($name);
+    //echo "name is $name\n";
     $q = "select id from actor where lower(name) = '".$name."'";
+    //echo "$q\n";
     $r = dbQuery($db, $q);
     $id = dbNext($r)[0];
+    
     return $id;
 }
 function actor_id_to_name($id){
@@ -199,6 +202,7 @@ function relation_movie_ids($name1, $name2){
     $db = dbConnect(DB_CONNECTION);
     $id1 = actor_name_to_id($name1);
     $id2= actor_name_to_id($name2);
+    //echo "name2 is $name2 and id2 is $id2\n";
     $movie_ids=[];
     $q = " select movie_id  from (select movie_id, count(movie_id) as count_num from acting where actor_id = ".$id1."or actor_id = ".$id2."  group by movie_id order by count_num desc) as a where count_num=2";
     $r = dbQuery($db, $q);
