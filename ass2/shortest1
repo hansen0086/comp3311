@@ -24,12 +24,88 @@ $to_do_name ->enqueue($start_name);
 $found_solution = 0;
 //the big loop
 $visited_name[]= $start_name;
+$degree[$start_name]=0;
+//$max_degree = -1;
+//try to build the true length
+
+$max_degree = getLength();
+//echo "got $max_degree max degree\n";
+while($to_do_name->count() > 0){
+   
+    $curr_actor_name = $to_do_name->dequeue();
+    $curr_actor_name = strtolower($curr_actor_name);
+    //echo "doing $curr_actor_name\n";
+    if($max_degree !=-1 && $degree[$curr_actor_name] >= $max_degree ){
+        //echo "you should not see me\n";
+        continue;
+    }
+
+    $neighbour_actors_ids = actor_ids_of_related_actor($curr_actor_name);
+
+    //if found result in neighbours
+    if(in_array($end_name_id, $neighbour_actors_ids)){
+        if($max_degree== -1){
+            $max_degree = $degree[$curr_actor_name]+1;
+         }
+        if(!isset($prev[$end_name]) or !in_array($curr_actor_name, $prev[$end_name])){
+             $prev[$end_name][]=$curr_actor_name;
+             $found_solution++;
+             
+        }
+    }
+    //did not found any end_name in neighbours
+    else{
+        //add all the neighbours that are less thean max degree into the $todo_name 
+        foreach($neighbour_actors_ids as $next_actor_id){
+            $next_actor_name = actor_id_to_name($next_actor_id);
+           
+
+
+
+            if(in_array($next_actor_name, $visited_name)){
+                if(!isset($prev[$next_actor_name][0]) or !in_array($curr_actor_name, $prev[$next_actor_name])){
+                    if(isset($degree[$next_actor_name]) && $degree[$next_actor_name]>$degree[$curr_actor_name]){
+                    $prev[$next_actor_name][]= $curr_actor_name;
+                    }
+                }
+                continue;
+            }
+            $visited_name[]=$next_actor_name;
+            if(!isset($degree[$next_actor_name]) || ($degree[$next_actor_name]> $degree[$curr_actor_name]+1)){
+                if(isset($degree[$next_actor_name]) && $degree[$next_actor_name]> $degree[$curr_actor_name]+1){
+                    echo "refreshing degree\n";
+                }
+                
+                $degree[$next_actor_name] = $degree[$curr_actor_name]+1;
+            }
+            //if next actor is still in the length
+            if($degree[$next_actor_name] < $max_degree){
+            
+            if(!isset($prev[$next_actor_name][0]) or !in_array($curr_actor_name, $prev[$next_actor_name])){
+                $prev[$next_actor_name][]= $curr_actor_name;
+            }
+               $to_do_name ->enqueue( $next_actor_name);
+            }
+        }
+
+    }
+}   
+/*
+echo "out of bfs loop\n";
+echo "printing all prev[Jacqueline Bisset]\n";
+$temp3= "jacqueline bisset";
+foreach($prev[$temp3] as $prev_name){
+    echo "$prev_name\n";
+}
+*/
+
+/*
 while($to_do_name->count()>0){
     
     $curr_actor_name = $to_do_name->dequeue();
     $curr_actor_name = strtolower($curr_actor_name);
    
-    //echo "curr actor is $curr_actor_name\n";
+    
 
     //find all the neighbour names
     $neighbour_actors_ids = actor_ids_of_related_actor($curr_actor_name);
@@ -89,16 +165,34 @@ foreach($prev[$end_name] as $actor_name){
     echo "prev before $end_name is $actor_name\n";
 }
 echo"$debug\n";
+*/
+
+
+
+
+
+
+
+
+
+
 
 
 $string;
 $string_index=0;
 printPaths($end_name); 
+/*
+echo "$found_solution solutions found\n";
+
 echo "start\n";
 foreach($string as $str){
     echo "$str\n";
 }
 echo "end\n";
+*/
+
+
+
 
 $target_string=null;
 foreach($string as $str){
@@ -110,19 +204,31 @@ foreach($string as $str){
     
     dfs($name_array,$curr_index, $path);
 }
-
+/*
 echo "final output:\n";
-
+*/
 $i=1;
+sort($target_string);
 foreach($target_string as $str){
-    
-    echo "$i, $str\n";
+    echo "$i. $str\n";
     $i++;
 }
+//$temp = "jacqueline bisset";
+//echo "degree of jacqueline is $degree[$temp]\n";
+//debugstart
+/*
+$temp2 = "ben gazzara";
+echo "degree of ben gazzara is $degree[$temp2]\n";
+echo "max degree is $max_degree\n";
+$temp3= "jacqueline bisset";
+echo "printing all prev[Jacqueline Bisset]\n";
+foreach($prev[$temp3] as $prev_name){
+    echo "$prev_name\n";
+}
+*/
 
 
-
-
+//debug end
 
 
 function dfs($name_array,$curr_index, $path){
@@ -145,13 +251,24 @@ function dfs($name_array,$curr_index, $path){
         return;
     }
     else{
-        $path = $path.$name_array[$curr_index];
+        $curr_name_with_capital = to_capital_name($name_array[$curr_index]);
+        $path = $path.$curr_name_with_capital;
         $relation_movies_ids = relation_movie_ids($curr_actor_name, $name_array[$next_index]);
         $relation_movies_names = relation_movie_names($relation_movies_ids);
         
         foreach($relation_movies_names as $movie_name){
-            $new_path= $path." <=> ".$movie_name." <=> ".$name_array[$next_index]."; ";
-            
+            $next_name_with_capital = to_capital_name($name_array[$next_index]);
+            $time = get_movie_time($movie_name);
+            if($time!=null){
+                $new_path= $path." was in ".$movie_name." (".$time.")"." with ".$next_name_with_capital;
+            }
+            else{
+                $new_path= $path." was in ".$movie_name." with ".$next_name_with_capital;
+            }
+            if($name_array[$next_index]!=$end_name){
+                $new_path= $new_path."; ";
+            }
+
             dfs($name_array,$next_index, $new_path);
         }        
     }
@@ -187,6 +304,9 @@ foreach($string as $str){
 
 //this part of code(printPaths, printPathsRecur) is copied from https://www.geeksforgeeks.org/given-a-binary-tree-print-all-root-to-leaf-paths/
 //and changed from language java to php
+
+
+
 function printPaths($node){
     
         $path[]=null;
@@ -236,6 +356,33 @@ function storeArray($array, $len) {
         $string[$string_index]= $string[$string_index];
         $string_index++;
     } 
+
+
+function get_movie_time($movie_name){
+    $movie_name = str_replace("'","''",$movie_name);
+    $db = dbConnect(DB_CONNECTION);
+    $q = "select year from movie where title = '".$movie_name."'";
+    $r = dbQuery($db,$q);
+    $year = dbNext($r)[0];
+    return $year; 
+}
+
+
+
+
+
+function to_capital_name($name){
+    $db = dbConnect(DB_CONNECTION);
+    $id = actor_name_to_id($name);
+    $q = "select name from actor where id = ".$id;
+    $r = dbQuery($db, $q);
+    $name = dbNext($r)[0];
+    return $name;
+}
+
+
+
+
 
 
 //return id of a actor given by his/her name
@@ -324,6 +471,39 @@ function actor_ids_of_related_actor($name){
         }
     }
     return $actor_ids;
+}
+
+function getLength(){
+    global $start_name;
+    global $end_name;
+    global $end_name_id;
+    $to_do_name = new SplQueue();
+    $to_do_name ->enqueue($start_name);
+    $degree[$start_name]=0;
+    $max_degree = -1;
+    while($to_do_name->count() > 0){
+        $curr_actor_name = $to_do_name->dequeue();
+        $curr_actor_name = strtolower($curr_actor_name);
+        $neighbour_actors_ids = actor_ids_of_related_actor($curr_actor_name);
+
+        //if found result in neighbours
+        if(in_array($end_name_id, $neighbour_actors_ids)){
+            return $degree[$curr_actor_name]+1;
+
+        }
+        //if not found,enqueue each node and setup $degree
+        else{
+            foreach($neighbour_actors_ids as $next_actor_id){
+                $next_actor_name = actor_id_to_name($next_actor_id);
+
+                $to_do_name ->enqueue($next_actor_name);
+                if(!isset($degree[$next_actor_name]) || ($degree[$next_actor_name]> $degree[$curr_actor_name]+1)){
+                    $degree[$next_actor_name]= $degree[$curr_actor_name]+1;
+                }
+            }
+
+        }
+    }
 }
 
 
