@@ -363,7 +363,8 @@ function get_movie_time($movie_name){
     $db = dbConnect(DB_CONNECTION);
     $q = "select year from movie where title = '".$movie_name."'";
     $r = dbQuery($db,$q);
-    $year = dbNext($r)[0];
+    $t = dbNext($r);
+    $year = $t[0];
     return $year; 
 }
 
@@ -376,7 +377,8 @@ function to_capital_name($name){
     $id = actor_name_to_id($name);
     $q = "select name from actor where id = ".$id;
     $r = dbQuery($db, $q);
-    $name = dbNext($r)[0];
+    $t = dbNext($r);
+    $name = $t[0];
     return $name;
 }
 
@@ -394,7 +396,8 @@ function actor_name_to_id($name){
     $q = "select id from actor where lower(name) = '".$name."'";
     //echo "$q\n";
     $r = dbQuery($db, $q);
-    $id = dbNext($r)[0];
+    $t = dbNext($r);
+    $id = $t[0];
     
     return $id;
 }
@@ -402,7 +405,8 @@ function actor_id_to_name($id){
     $db = dbConnect(DB_CONNECTION);
     $q = "select name from actor where id = ".$id;
     $r = dbQuery($db, $q);
-    $name = dbNext($r)[0];
+    $t = dbNext($r);
+    $name = $t[0];
     $name = strtolower($name);
     return $name;
 }
@@ -414,12 +418,12 @@ function relation_movie_ids($name1, $name2){
     $id1 = actor_name_to_id($name1);
     $id2= actor_name_to_id($name2);
     //echo "name2 is $name2 and id2 is $id2\n";
-    $movie_ids=[];
+    $movie_ids;
     $q = " select movie_id  from (select movie_id, count(movie_id) as count_num from acting where actor_id = ".$id1."or actor_id = ".$id2."  group by movie_id order by count_num desc) as a where count_num=2";
     $r = dbQuery($db, $q);
     
-    while($movie_id = dbNext($r)[0]){
-
+    while($t = dbNext($r)){
+        $movie_id = $t[0];
         $movie_ids[] = $movie_id;
     }
  
@@ -433,7 +437,9 @@ function relation_movie_names($movie_ids){
     foreach ($movie_ids as $movie_id){
         $q = "select title from movie where id = ".$movie_id;
         $r = dbQuery($db, $q);
-        $movie_names[] = dbNext($r)[0];
+        $t = dbNext($r);
+        $movie_names[] = $t[0];
+        
     }
    
     return $movie_names;
@@ -447,7 +453,8 @@ function movie_ids_of_an_actor($name){
     $id = actor_name_to_id($name);
     $q = "select movie_id from acting where actor_id = ".$id;
     $r = dbQuery($db, $q);
-    while($movie_id = dbNext($r)[0]){
+    while($t = dbNext($r)){
+        $movie_id = $t[0];
         $movie_ids[]=$movie_id;
     }
     return $movie_ids;
@@ -466,7 +473,8 @@ function actor_ids_of_related_actor($name){
     foreach($movie_ids as $movie_id){
         $q = "select actor_id from acting where movie_id = ".$movie_id."and actor_id !=".$id;
         $r = dbQuery($db, $q);
-        while($actor_id = dbNext($r)[0]){
+        while($t = dbNext($r)){
+            $actor_id = $t[0];
             $actor_ids[]= $actor_id;
         }
     }
