@@ -1,0 +1,287 @@
+#!/usr/bin/php
+<?php
+    require_once("a2.php");
+    
+    
+    //$usage = "Usage: $argv[0] ActorName";
+    $db = dbConnect(DB_CONNECTION);
+
+    $start_name = $argv[1];
+    $min_degree = $argv[2];
+    $max_degree = $argv[3];
+
+    $start_name = strtolower($start_name);
+
+    $to_do_name = new SplQueue();
+
+$to_do_name ->enqueue($start_name);
+
+$found_solution = 0;
+//the big loop
+$visited_name[]= $start_name;
+$degree[$start_name]=0;
+//$max_degree = -1;
+//try to build the true length
+
+$max_degree = $max_degree;
+//echo "got $max_degree max degree\n";
+while($to_do_name->count() > 0){
+   
+    $curr_actor_name = $to_do_name->dequeue();
+    $curr_actor_name = strtolower($curr_actor_name);
+    //echo "doing $curr_actor_name\n";
+    if($degree[$curr_actor_name] >= $max_degree ){
+        //echo "you should not see me\n";
+        continue;
+    }
+
+    $neighbour_actors_ids = actor_ids_of_related_actor($curr_actor_name);
+    
+        //add all the neighbours that are less thean max degree into the $todo_name 
+        foreach($neighbour_actors_ids as $next_actor_id){
+            $next_actor_name = actor_id_to_name($next_actor_id);
+            if(in_array($next_actor_name, $visited_name)){
+                if(!isset($prev[$next_actor_name][0]) or !in_array($curr_actor_name, $prev[$next_actor_name])){
+                    if(isset($degree[$next_actor_name]) && $degree[$next_actor_name]>$degree[$curr_actor_name]){
+                    $prev[$next_actor_name][]= $curr_actor_name;
+                    }
+                }
+                continue;
+            }
+            $visited_name[]=$next_actor_name;
+            if(!isset($degree[$next_actor_name]) || ($degree[$next_actor_name]> $degree[$curr_actor_name]+1)){
+                if(isset($degree[$next_actor_name]) && $degree[$next_actor_name]> $degree[$curr_actor_name]+1){
+                    echo "refreshing degree\n";
+                }
+                
+                $degree[$next_actor_name] = $degree[$curr_actor_name]+1;
+            }
+            //if next actor is still in the length
+            if($degree[$next_actor_name] < $max_degree){
+            
+            if(!isset($prev[$next_actor_name][0]) or !in_array($curr_actor_name, $prev[$next_actor_name])){
+                $prev[$next_actor_name][]= $curr_actor_name;
+            }
+               $to_do_name ->enqueue( $next_actor_name);
+            }
+        }
+} 
+
+
+//$degree = array_flip($degree);
+
+foreach($degree as $name => $degree_num) {
+    $name_of_degree[$degree_num][] = $name;
+
+}
+
+
+$i=1;
+$curr_degree = $min_degree;
+while($curr_degree<=$max_degree){
+    sort($name_of_degree[$curr_degree]);
+    foreach ($name_of_degree[$curr_degree] as $name){
+    $name = to_capital_name($name);
+    echo $i.". ".$name." ($curr_degree)\n";
+    $i++;
+    }
+    $curr_degree++;
+}
+
+/*
+foreach($degree as $name => $degree_num) {
+*/
+
+
+
+
+
+
+
+/*
+
+$final_string=[];
+
+$curr_degree = $min_degree;
+
+
+foreach($degree as $name => $degree_num) {
+    if($degree_num>= $min_degree && $degree_num <= $max_degree){
+        $name = to_capital_name($name);
+        $final_string[]= "$name ($degree_num)\n";
+    }
+  }
+sort($final_string);
+$i=1;
+foreach($final_string as $string){
+    echo "$i. $string";
+    $i++;
+}
+//echo "$max_degree $min_degree\n";
+
+
+*/
+
+
+
+
+
+
+//function copied from shortest
+function get_movie_time($movie_name){
+    $movie_name = str_replace("'","''",$movie_name);
+    $db = dbConnect(DB_CONNECTION);
+    $q = "select year from movie where title = '".$movie_name."'";
+    $r = dbQuery($db,$q);
+    $t = dbNext($r);
+    $year = $t[0];
+    return $year; 
+}
+
+
+
+
+
+function to_capital_name($name){
+    $db = dbConnect(DB_CONNECTION);
+    $id = actor_name_to_id($name);
+    $q = "select name from actor where id = ".$id;
+    $r = dbQuery($db, $q);
+    $t = dbNext($r);
+    $name = $t[0];
+    return $name;
+}
+
+
+
+
+
+
+//return id of a actor given by his/her name
+function actor_name_to_id($name){
+    $name = str_replace("'","''",$name);
+    $db = dbConnect(DB_CONNECTION);
+    $name = strtolower($name);
+    //echo "name is $name\n";
+    $q = "select id from actor where lower(name) = '".$name."'";
+    //echo "$q\n";
+    $r = dbQuery($db, $q);
+    $t = dbNext($r);
+    $id = $t[0];
+    
+    return $id;
+}
+function actor_id_to_name($id){
+    $db = dbConnect(DB_CONNECTION);
+    $q = "select name from actor where id = ".$id;
+    $r = dbQuery($db, $q);
+    $t = dbNext($r);
+    $name = $t[0];
+    $name = strtolower($name);
+    return $name;
+}
+
+//return movie_ids that 2 actors are related on, return null if no such match
+function relation_movie_ids($name1, $name2){
+   
+    $db = dbConnect(DB_CONNECTION);
+    $id1 = actor_name_to_id($name1);
+    $id2= actor_name_to_id($name2);
+    //echo "name2 is $name2 and id2 is $id2\n";
+    $movie_ids;
+    $q = " select movie_id  from (select movie_id, count(movie_id) as count_num from acting where actor_id = ".$id1."or actor_id = ".$id2."  group by movie_id order by count_num desc) as a where count_num=2";
+    $r = dbQuery($db, $q);
+    
+    while($t = dbNext($r)){
+        $movie_id = $t[0];
+        $movie_ids[] = $movie_id;
+    }
+ 
+    return $movie_ids;
+}
+
+//from $movie_ids array into movie_names_array
+function relation_movie_names($movie_ids){
+    
+    $db = dbConnect(DB_CONNECTION);
+    foreach ($movie_ids as $movie_id){
+        $q = "select title from movie where id = ".$movie_id;
+        $r = dbQuery($db, $q);
+        $t = dbNext($r);
+        $movie_names[] = $t[0];
+        
+    }
+   
+    return $movie_names;
+}
+
+
+//return the movie_ids of an actor
+
+function movie_ids_of_an_actor($name){
+    $db = dbConnect(DB_CONNECTION);
+    $id = actor_name_to_id($name);
+    $q = "select movie_id from acting where actor_id = ".$id;
+    $r = dbQuery($db, $q);
+    while($t = dbNext($r)){
+        $movie_id = $t[0];
+        $movie_ids[]=$movie_id;
+    }
+    return $movie_ids;
+}
+
+//return a list of actor id from an actor
+function actor_ids_of_related_actor($name){
+    $db = dbConnect(DB_CONNECTION);
+    $id = actor_name_to_id($name);
+
+    //first find the movies id of an actor
+    $movie_ids = movie_ids_of_an_actor($name);
+    //then find the actor ids of each movie where actor_name != $name
+
+
+    foreach($movie_ids as $movie_id){
+        $q = "select actor_id from acting where movie_id = ".$movie_id."and actor_id !=".$id;
+        $r = dbQuery($db, $q);
+        while($t = dbNext($r)){
+            $actor_id = $t[0];
+            $actor_ids[]= $actor_id;
+        }
+    }
+    return $actor_ids;
+}
+
+function getLength(){
+    global $start_name;
+    global $end_name;
+    global $end_name_id;
+    $to_do_name = new SplQueue();
+    $to_do_name ->enqueue($start_name);
+    $degree[$start_name]=0;
+    $max_degree = -1;
+    while($to_do_name->count() > 0){
+        $curr_actor_name = $to_do_name->dequeue();
+        $curr_actor_name = strtolower($curr_actor_name);
+        $neighbour_actors_ids = actor_ids_of_related_actor($curr_actor_name);
+
+        //if found result in neighbours
+        if(in_array($end_name_id, $neighbour_actors_ids)){
+            return $degree[$curr_actor_name]+1;
+
+        }
+        //if not found,enqueue each node and setup $degree
+        else{
+            foreach($neighbour_actors_ids as $next_actor_id){
+                $next_actor_name = actor_id_to_name($next_actor_id);
+
+                $to_do_name ->enqueue($next_actor_name);
+                if(!isset($degree[$next_actor_name]) || ($degree[$next_actor_name]> $degree[$curr_actor_name]+1)){
+                    $degree[$next_actor_name]= $degree[$curr_actor_name]+1;
+                }
+            }
+
+        }
+    }
+}
+
+?>
