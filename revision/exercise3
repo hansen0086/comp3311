@@ -1,0 +1,35 @@
+create table Employees (
+      eid       integer,
+      ename     varchar(30),
+      age       integer,
+      salary    real check(salary>=15000),
+      primary key (eid)
+);
+create table Departments (
+      did       integer,
+      dname     varchar(20),
+      budget    real,
+      manager   integer not null,
+      primary key (did),
+      foreign key (manager) references Employees(eid), 
+
+    constraint FullTimeManager
+    check(1.0= (select w.pct_time from WorksIn w where w.eid = manager))
+
+);
+create table WorksIn (
+      eid       integer,
+      did       integer,
+      pct_time  real,
+      primary key (eid,did),
+      foreign key (eid) references Employees(eid),
+      foreign key (did) references Departments(did)
+);
+
+
+update Employee
+set salary = salary * 1.1
+where eid in(
+    select eid from  WorksIn w join Department on d.did = w.did
+    where d.dname = 'Sales'
+);
