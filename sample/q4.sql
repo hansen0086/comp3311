@@ -1,0 +1,1 @@
+ select match, country, lead(country) over (partition by match) from involves join teams on teams.id = involves.team limit 10;

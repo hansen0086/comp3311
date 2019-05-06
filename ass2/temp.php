@@ -1,63 +1,492 @@
 #!/usr/bin/php
 <?php
-   $array[0]=0;
-   $array[1]=1;
-   $array[2]=2;
-   $array[3]=3;
-
-   unset($array[1]);
-   foreach($array as $num){
-       echo "$num\n";
-   }
+// include the common PHP code file
+require("a2.php");
+// PROGRAM BODY BEGINS
+$usage = "Usage: $argv[0] name name";
+$db = dbConnect(DB_CONNECTION);
+// Check arguments
+if (count($argv) < 3) exit("$usage\n");
+//get ids of 2 actors
+$q1 = "select id from actor where lower(name) = lower(%s)";
+$r1 = dbQuery($db, mkSQL($q1, $argv[1]));
+$t = dbNext($r1);
+$actor1_id = $t[0];
+$q1 = "select id from actor where lower(name) = lower(%s)";
+$r1 = dbQuery($db, mkSQL($q1, $argv[2]));
+$t = dbNext($r1);
+$actor2_id = $t[0];
+//echo $actor1_id." ".$actor2_id."\n";
+//set a empty to determine wheather output is is empty or not
+$empty = 1; //1:empty 0:not
+//1st degree:
+$time = time();
+echo "$time\n";
+$q1 = "create or replace view shortest_1st_degree as select a1.actor_id as actor1, a1.movie_id as movie1_2, a2.actor_id as actor2 from acting a1 left join acting a2 on a1.movie_id = a2.movie_id where a1.actor_id = %d and a2.actor_id <> %d";
+$r1 = dbQuery($db, mkSQL($q1, $actor1_id, $actor1_id));
+//get if res contians the solution
+$q1 = "select * from shortest_1st_degree where actor2 = %d";
+$r1 = dbQuery($db, mkSQL($q1, $actor2_id));
+//transfer ids to names and titles
+for ($i = 1; $t = dbNext($r1); $i++) {
+$q2 = "select name from actor where id = %d";
+    $r2 = dbQuery($db, mkSQL($q2, $t[0]));
+    $temp = dbNext($r2);
+    $actor1 = $temp[0];
+    $results = "$actor1 was in";
+    //1
+    $q2 = "select title, year from movie where id = %d";
+    $r2 = dbQuery($db, mkSQL($q2, $t[1]));
+    $temp = dbNext($r2);
+    $movie12 = $temp[0];
+    $results .= " $movie12";
+    $year12 = $temp[1];
+    if (!empty($year12))
+        $results .= " ($year12)";
+    $q2 = "select name from actor where id = %d";
+    $r2 = dbQuery($db, mkSQL($q2, $t[2]));
+    $temp = dbNext($r2);
+    $actor2 = $temp[0];
+    $results .= " with $actor2";
+    $strs[] = "$results\n";
+    $empty = 0;
+}
+//sort and print
+if (!$empty) { 
+    sort($strs);
+    $i=1;
+    foreach($strs as $string){
+        echo "$i. $string";
+        $i++;
+    }
+}else{
+    //2nd degree
+$time = time();
+echo "$time\n";
+    $q1 = "create or replace view shortest_2nd_degree as select shortest_1st_degree.*, a1.movie_id as movie2_3, a2.actor_id as actor3 from shortest_1st_degree left join acting a1 on actor2 = a1.actor_id left join acting a2 on a1.movie_id = a2.movie_id where movie1_2 != a1.movie_id and actor2 != a2.actor_id";
+    $r1 = dbQuery($db, mkSQL($q1));
+    //get if res contians the solution
+    $q1 = "select * from shortest_2nd_degree where actor3 = %d";
+    $r1 = dbQuery($db, mkSQL($q1, $actor2_id));
+    //transfer ids to names and titles
+    for ($i = 1; $t = dbNext($r1); $i++) {
+        $q2 = "select name from actor where id = %d";
+        $r2 = dbQuery($db, mkSQL($q2, $t[0]));
+        $temp = dbNext($r2);
+        $actor1 = $temp[0];
+        $results = "$actor1 was in";
+        //1
+        $q2 = "select title, year from movie where id = %d";
+        $r2 = dbQuery($db, mkSQL($q2, $t[1]));
+        $temp = dbNext($r2);
+        $movie12 = $temp[0];
+        $results .= " $movie12";
+        $year12 = $temp[1];
+        if (!empty($year12))
+            $results .= " ($year12)";
+        $q2 = "select name from actor where id = %d";
+        $r2 = dbQuery($db, mkSQL($q2, $t[2]));
+        $temp = dbNext($r2);
+        $actor2 = $temp[0];
+        $results .= " with $actor2";
+        //2
+        $q2 = "select title, year from movie where id = %d";
+        $r2 = dbQuery($db, mkSQL($q2, $t[3]));
+        $temp = dbNext($r2);
+        $movie23 = $temp[0];
+        $results .= "; $actor2 was in $movie23";
+        $year23 = $temp[1];
+        if (!empty($year23))
+            $results .= " ($year23)";
+        $q2 = "select name from actor where id = %d";
+        $r2 = dbQuery($db, mkSQL($q2, $t[4]));
+        $temp = dbNext($r2);
+        $actor3 = $temp[0];
+        $results .= " with $actor3";
+        $strs[] = "$results\n";
+        $empty = 0;
+    }
+    //sort and print
+    if (!$empty) { 
+        sort($strs);
+        $i=1;
+        foreach($strs as $string){
+            echo "$i. $string";
+            $i++;
+        }
+    }else{
+        //3rd degree
+$time = time();
+echo "$time\n";
+        $q1 = "create or replace view shortest_3rd_degree as select shortest_2nd_degree.*, a1.movie_id as movie3_4, a2.actor_id as actor4 from shortest_2nd_degree left join acting a1 on actor3 = a1.actor_id left join acting a2 on a1.movie_id = a2.movie_id where movie2_3 != a1.movie_id and actor3 != a2.actor_id";
+        $r1 = dbQuery($db, mkSQL($q1));
+        //get if res contians the solution
+        $q1 = "select * from shortest_3rd_degree where actor4 = %d";
+        $r1 = dbQuery($db, mkSQL($q1, $actor2_id));
+        //transfer ids to names and titles
+        for ($i = 1; $t = dbNext($r1); $i++) {
+            $q2 = "select name from actor where id = %d";
+            $r2 = dbQuery($db, mkSQL($q2, $t[0]));
+            $temp = dbNext($r2);
+            $actor1 = $temp[0];
+            $results = "$actor1 was in";
+            //1
+            $q2 = "select title, year from movie where id = %d";
+            $r2 = dbQuery($db, mkSQL($q2, $t[1]));
+            $temp = dbNext($r2);
+            $movie12 = $temp[0];
+            $results .= " $movie12";
+            $year12 = $temp[1];
+            if (!empty($year12))
+                $results .= " ($year12)";
+            $q2 = "select name from actor where id = %d";
+            $r2 = dbQuery($db, mkSQL($q2, $t[2]));
+            $temp = dbNext($r2);
+            $actor2 = $temp[0];
+            $results .= " with $actor2";
+            //2
+            $q2 = "select title, year from movie where id = %d";
+            $r2 = dbQuery($db, mkSQL($q2, $t[3]));
+            $temp = dbNext($r2);
+            $movie23 = $temp[0];
+            $results .= "; $actor2 was in $movie23";
+            $year23 = $temp[1];
+            if (!empty($year23))
+                $results .= " ($year23)";
+            $q2 = "select name from actor where id = %d";
+            $r2 = dbQuery($db, mkSQL($q2, $t[4]));
+            $temp = dbNext($r2);
+            $actor3 = $temp[0];
+            $results .= " with $actor3";
+            //3
+            $q2 = "select title, year from movie where id = %d";
+            $r2 = dbQuery($db, mkSQL($q2, $t[5]));
+            $temp = dbNext($r2);
+            $movie34 = $temp[0];
+            $results .= "; $actor3 was in $movie34";
+            $year34 = $temp[1];
+            if (!empty($year34))
+                $results .= " ($year34)";
+            $q2 = "select name from actor where id = %d";
+            $r2 = dbQuery($db, mkSQL($q2, $t[6]));
+            $temp = dbNext($r2);
+            $actor4 = $temp[0];
+            $results .= " with $actor4";
+            $strs[] = "$results\n";
+            $empty = 0;
+        }
+        //sort and print
+        if (!$empty) { 
+            sort($strs);
+            $i=1;
+            foreach($strs as $string){
+                echo "$i. $string";
+                $i++;
+            }
+        }else{
+            //4th degree
+$time = time();
+echo "$time\n";
+            $q1 = "create or replace view shortest_4th_degree as select shortest_3rd_degree.*, a1.movie_id as movie4_5, a2.actor_id as actor5 from shortest_3rd_degree left join acting a1 on actor4 = a1.actor_id left join acting a2 on a1.movie_id = a2.movie_id where movie3_4 != a1.movie_id and actor4 != a2.actor_id";
+            $r1 = dbQuery($db, mkSQL($q1));
+            //get if res contians the solution 
+            $q1 = "select * from shortest_4th_degree where actor5 = %d";
+            $r1 = dbQuery($db, mkSQL($q1, $actor2_id));
+            //transfer ids to names and titles
+            for ($i = 1; $t = dbNext($r1); $i++) {
+                $q2 = "select name from actor where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[0]));
+                $temp = dbNext($r2);
+                $actor1 = $temp[0];
+                $results = "$actor1 was in";
+                //1
+                $q2 = "select title, year from movie where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[1]));
+                $temp = dbNext($r2);
+                $movie12 = $temp[0];
+                $results .= " $movie12";
+                $year12 = $temp[1];
+                if (!empty($year12))
+                    $results .= " ($year12)";
+                $q2 = "select name from actor where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[2]));
+                $temp = dbNext($r2);
+                $actor2 = $temp[0];
+                $results .= " with $actor2";
+                //2
+                $q2 = "select title, year from movie where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[3]));
+                $temp = dbNext($r2);
+                $movie23 = $temp[0];
+                $results .= "; $actor2 was in $movie23";
+                $year23 = $temp[1];
+                if (!empty($year23))
+                    $results .= " ($year23)";
+                $q2 = "select name from actor where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[4]));
+                $temp = dbNext($r2);
+                $actor3 = $temp[0];
+                $results .= " with $actor3";
+                //3
+                $q2 = "select title, year from movie where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[5]));
+                $temp = dbNext($r2);
+                $movie34 = $temp[0];
+                $results .= "; $actor3 was in $movie34";
+                $year34 = $temp[1];
+                if (!empty($year34))
+                    $results .= " ($year34)";
+                $q2 = "select name from actor where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[6]));
+                $temp = dbNext($r2);
+                $actor4 = $temp[0];
+                $results .= " with $actor4";
+                //4
+                $q2 = "select title, year from movie where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[7]));
+                $temp = dbNext($r2);
+                $movie45 = $temp[0];
+                $results .= "; $actor4 was in $movie45";
+                $year45 = $temp[1];
+                if (!empty($year45))
+                    $results .= " ($year45)";
+                $q2 = "select name from actor where id = %d";
+                $r2 = dbQuery($db, mkSQL($q2, $t[8]));
+                $temp = dbNext($r2);
+                $actor5 = $temp[0];
+                $results .= " with $actor5";
+                $strs[] = "$results\n";
+                $empty = 0;
+            }
+            
+            if (!$empty) { 
+                sort($strs);
+                $i=1;
+                foreach($strs as $string){
+                    echo "$i. $string";
+                    $i++;
+                }
+            }else{
+                //5th degree
+$time = time();
+echo "$time\n";
+                $q1 = "create or replace view shortest_5th_degree as select shortest_4th_degree.*, a1.movie_id as movie5_6, a2.actor_id as actor6 from shortest_4th_degree left join acting a1 on actor5 = a1.actor_id left join acting a2 on a1.movie_id = a2.movie_id where movie4_5 != a1.movie_id and actor5 != a2.actor_id";
+                $r1 = dbQuery($db, mkSQL($q1));
+                //get if res contians the solution
+$time = time();
+echo "-2 $time\n";
+                $q1 = "select * from shortest_5th_degree where actor6 = %d";
+                $r1 = dbQuery($db, mkSQL($q1, $actor2_id));
+$time = time();
+echo "-1 $time\n";
+                //transfer ids to names and titles
+                for ($i = 1; $t = dbNext($r1); $i++) {
+                    $q2 = "select name from actor where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[0]));
+                    $temp = dbNext($r2);
+                    $actor1 = $temp[0];
+                    $results = "$actor1 was in";
+                    //1
+                    $q2 = "select title, year from movie where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[1]));
+                    $temp = dbNext($r2);
+                    $movie12 = $temp[0];
+                    $results .= " $movie12";
+                    $year12 = $temp[1];
+                    if (!empty($year12))
+                        $results .= " ($year12)";
+                    $q2 = "select name from actor where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[2]));
+                    $temp = dbNext($r2);
+                    $actor2 = $temp[0];
+                    $results .= " with $actor2";
+                    //2
+                    $q2 = "select title, year from movie where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[3]));
+                    $temp = dbNext($r2);
+                    $movie23 = $temp[0];
+                    $results .= "; $actor2 was in $movie23";
+                    $year23 = $temp[1];
+                    if (!empty($year23))
+                        $results .= " ($year23)";
+                    $q2 = "select name from actor where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[4]));
+                    $temp = dbNext($r2);
+                    $actor3 = $temp[0];
+                    $results .= " with $actor3";
+                    //3
+                    $q2 = "select title, year from movie where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[5]));
+                    $temp = dbNext($r2);
+                    $movie34 = $temp[0];
+                    $results .= "; $actor3 was in $movie34";
+                    $year34 = $temp[1];
+                    if (!empty($year34))
+                        $results .= " ($year34)";
+                    $q2 = "select name from actor where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[6]));
+                    $temp = dbNext($r2);
+                    $actor4 = $temp[0];
+                    $results .= " with $actor4";
+                    //4
+                    $q2 = "select title, year from movie where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[7]));
+                    $temp = dbNext($r2);
+                    $movie45 = $temp[0];
+                    $results .= "; $actor4 was in $movie45";
+                    $year45 = $temp[1];
+                    if (!empty($year45))
+                        $results .= " ($year45)";
+                    $q2 = "select name from actor where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[8]));
+                    $temp = dbNext($r2);
+                    $actor5 = $temp[0];
+                    $results .= " with $actor5";
+                    //5
+                    $q2 = "select title, year from movie where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[9]));
+                    $temp = dbNext($r2);
+                    $movie56 = $temp[0];
+                    $results .= "; $actor5 was in $movie56";
+                    $year56 = $temp[1];
+                    if (!empty($year56))
+                        $results .= " ($year56)";
+                    $q2 = "select name from actor where id = %d";
+                    $r2 = dbQuery($db, mkSQL($q2, $t[10]));
+                    $temp = dbNext($r2);
+                    $actor6 = $temp[0];
+                    $results .= " with $actor6";
+                    $strs[] = "$results\n";
+                    $empty = 0;
+                }
+$time = time();
+echo "0 $time\n";
+                if (!$empty) { 
+                    sort($strs);
+                    $i=1;
+                    foreach($strs as $string){
+                        echo "$i. $string";
+                        $i++;
+                    }
+                }else{
+                    //6th degree
+$time = time();
+echo "1 $time\n";
+                    $q1 = "create or replace view shortest_6th_degree as select shortest_5th_degree.*, a1.movie_id as movie6_7, a2.actor_id as actor7 from shortest_5th_degree left join acting a1 on actor6 = a1.actor_id left join acting a2 on a1.movie_id = a2.movie_id where movie5_6 != a1.movie_id and actor6 != a2.actor_id";
+                    $r1 = dbQuery($db, mkSQL($q1));
+$time = time();
+echo "2 $time\n";
+                    //get if res contians the solution
+                    $q1 = "select * from shortest_6th_degree where actor7 = %d";
+                    $r1 = dbQuery($db, mkSQL($q1, $actor2_id));
+$time = time();
+echo "3 $time\n";
+                    //transfer ids to names and titles
+                    for ($i = 1; $t = dbNext($r1); $i++) {
+                        $q2 = "select name from actor where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[0]));
+                        $temp = dbNext($r2);
+                        $actor1 = $temp[0];
+                        $results = "$actor1 was in";
+                        //1
+                        $q2 = "select title, year from movie where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[1]));
+                        $temp = dbNext($r2);
+                        $movie12 = $temp[0];
+                        $results .= " $movie12";
+                        $year12 = $temp[1];
+                        if (!empty($year12))
+                            $results .= " ($year12)";
+                        $q2 = "select name from actor where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[2]));
+                        $temp = dbNext($r2);
+                        $actor2 = $temp[0];
+                        $results .= " with $actor2";
+                        //2
+                        $q2 = "select title, year from movie where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[3]));
+                        $temp = dbNext($r2);
+                        $movie23 = $temp[0];
+                        $results .= "; $actor2 was in $movie23";
+                        $year23 = $temp[1];
+                        if (!empty($year23))
+                            $results .= " ($year23)";
+                        $q2 = "select name from actor where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[4]));
+                        $temp = dbNext($r2);
+                        $actor3 = $temp[0];
+                        $results .= " with $actor3";
+                        //3
+                        $q2 = "select title, year from movie where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[5]));
+                        $temp = dbNext($r2);
+                        $movie34 = $temp[0];
+                        $results .= "; $actor3 was in $movie34";
+                        $year34 = $temp[1];
+                        if (!empty($year34))
+                            $results .= " ($year34)";
+                        $q2 = "select name from actor where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[6]));
+                        $temp = dbNext($r2);
+                        $actor4 = $temp[0];
+                        $results .= " with $actor4";
+                        //4
+                        $q2 = "select title, year from movie where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[7]));
+                        $temp = dbNext($r2);
+                        $movie45 = $temp[0];
+                        $results .= "; $actor4 was in $movie45";
+                        $year45 = $temp[1];
+                        if (!empty($year45))
+                            $results .= " ($year45)";
+                        $q2 = "select name from actor where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[8]));
+                        $temp = dbNext($r2);
+                        $actor5 = $temp[0];
+                        $results .= " with $actor5";
+                        //5
+                        $q2 = "select title, year from movie where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[9]));
+                        $temp = dbNext($r2);
+                        $movie56 = $temp[0];
+                        $results .= "; $actor5 was in $movie56";
+                        $year56 = $temp[1];
+                        if (!empty($year56))
+                            $results .= " ($year56)";
+                        $q2 = "select name from actor where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[10]));
+                        $temp = dbNext($r2);
+                        $actor6 = $temp[0];
+                        $results .= " with $actor6";
+            
+                        //5
+                        $q2 = "select title, year from movie where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[11]));
+                        $temp = dbNext($r2);
+                        $movie67 = $temp[0];
+                        $results .= "; $actor6 was in $movie67";
+                        $year67 = $temp[1];
+                        if (!empty($year67))
+                            $results .= " ($year67)";
+                        $q2 = "select name from actor where id = %d";
+                        $r2 = dbQuery($db, mkSQL($q2, $t[12]));
+                        $temp = dbNext($r2);
+                        $actor7 = $temp[0];
+                        $results .= " with $actor7";
+                        $strs[] = "$results\n";
+                        $empty = 0;
+                    }
+                    sort($strs);
+                    $i=1;
+                    foreach($strs as $string){
+                        echo "$i. $string";
+                        $i++;
+                    }
+$time = time();
+echo "4 $time\n";
+                }
+            }  
+        }
+    }
+}
 ?>
-
-1, chris evans <=> Fantastic 4: Rise of the Silver Surfer <=> andre braugher; andre braugher <=> City of Angels <=> nicolas cage; nicolas cage <=> Kiss of Death <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-2, chris evans <=> Fantastic 4: Rise of the Silver Surfer <=> andre braugher; andre braugher <=> City of Angels <=> nicolas cage; nicolas cage <=> Kiss of Death <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-3, chris evans <=> The Iceman <=> james franco; james franco <=> In the Valley of Elah <=> charlize theron; charlize theron <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-4, chris evans <=> The Iceman <=> james franco; james franco <=> In the Valley of Elah <=> charlize theron; charlize theron <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-5, chris evans <=> London <=> jason statham; jason statham <=> The Italian Job <=> charlize theron; charlize theron <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-6, chris evans <=> London <=> jason statham; jason statham <=> The Italian Job <=> charlize theron; charlize theron <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-7, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> The Devil's Advocate <=> charlize theron; charlize theron <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-8, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> The Devil's Advocate <=> charlize theron; charlize theron <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-9, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> Sweet November <=> charlize theron; charlize theron <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-10, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> Sweet November <=> charlize theron; charlize theron <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-11, chris evans <=> The Iceman <=> james franco; james franco <=> City by the Sea <=> robert de niro; robert de niro <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-12, chris evans <=> The Iceman <=> james franco; james franco <=> City by the Sea <=> robert de niro; robert de niro <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-13, chris evans <=> London <=> jason statham; jason statham <=> Killer Elite <=> robert de niro; robert de niro <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-14, chris evans <=> London <=> jason statham; jason statham <=> Killer Elite <=> robert de niro; robert de niro <=> Men of Honor <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-15, chris evans <=> TMNT <=> mako; mako <=> Seven Years in Tibet <=> brad pitt; brad pitt <=> True Romance <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-16, chris evans <=> TMNT <=> mako; mako <=> Seven Years in Tibet <=> brad pitt; brad pitt <=> True Romance <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-17, chris evans <=> London <=> jason statham; jason statham <=> Snatch <=> brad pitt; brad pitt <=> True Romance <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-18, chris evans <=> London <=> jason statham; jason statham <=> Snatch <=> brad pitt; brad pitt <=> True Romance <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-19, chris evans <=> Captain America: Civil War <=> scarlett johansson; scarlett johansson <=> Girl with a Pearl Earring <=> tom wilkinson; tom wilkinson <=> Little Boy <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-20, chris evans <=> Captain America: Civil War <=> scarlett johansson; scarlett johansson <=> Girl with a Pearl Earring <=> tom wilkinson; tom wilkinson <=> Little Boy <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-21, chris evans <=> Captain America: The Winter Soldier <=> scarlett johansson; scarlett johansson <=> Girl with a Pearl Earring <=> tom wilkinson; tom wilkinson <=> Little Boy <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-22, chris evans <=> Captain America: The Winter Soldier <=> scarlett johansson; scarlett johansson <=> Girl with a Pearl Earring <=> tom wilkinson; tom wilkinson <=> Little Boy <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-23, chris evans <=> London <=> jason statham; jason statham <=> Ghosts of Mars <=> natasha henstridge; natasha henstridge <=> Should've Been Romeo <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-24, chris evans <=> London <=> jason statham; jason statham <=> Ghosts of Mars <=> natasha henstridge; natasha henstridge <=> Should've Been Romeo <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-25, chris evans <=> London <=> jason statham; jason statham <=> The Bank Job <=> saffron burrows; saffron burrows <=> Deep Blue Sea <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-26, chris evans <=> London <=> jason statham; jason statham <=> The Bank Job <=> saffron burrows; saffron burrows <=> Deep Blue Sea <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-27, chris evans <=> Street Kings <=> noel gugliemi; noel gugliemi <=> Small Apartments <=> saffron burrows; saffron burrows <=> Deep Blue Sea <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-28, chris evans <=> Street Kings <=> noel gugliemi; noel gugliemi <=> Small Apartments <=> saffron burrows; saffron burrows <=> Deep Blue Sea <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-29, chris evans <=> London <=> jason statham; jason statham <=> The Mechanic <=> tony goldwyn; tony goldwyn <=> The 6th Day <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-30, chris evans <=> London <=> jason statham; jason statham <=> The Mechanic <=> tony goldwyn; tony goldwyn <=> The 6th Day <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-31, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> 47 Ronin <=> cary-hiroyuki tagawa; cary-hiroyuki tagawa <=> Little Boy <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-32, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> 47 Ronin <=> cary-hiroyuki tagawa; cary-hiroyuki tagawa <=> Little Boy <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-33, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> Bram Stoker's Dracula <=> gary oldman; gary oldman <=> True Romance <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-34, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> Bram Stoker's Dracula <=> gary oldman; gary oldman <=> True Romance <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-35, chris evans <=> Captain America: Civil War <=> robert downey jr.; robert downey jr. <=> Lucky You <=> robert duvall; robert duvall <=> The 6th Day <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-36, chris evans <=> Captain America: Civil War <=> robert downey jr.; robert downey jr. <=> Lucky You <=> robert duvall; robert duvall <=> The 6th Day <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-37, chris evans <=> Captain America: Civil War <=> robert downey jr.; robert downey jr. <=> The Judge <=> robert duvall; robert duvall <=> The 6th Day <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-38, chris evans <=> Captain America: Civil War <=> robert downey jr.; robert downey jr. <=> The Judge <=> robert duvall; robert duvall <=> The 6th Day <=> michael rapaport; michael rapaport <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-39, chris evans <=> Fantastic 4: Rise of the Silver Surfer <=> andre braugher; andre braugher <=> Get on the Bus <=> bernie mac; bernie mac <=> What's the Worst That Could Happen? <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-40, chris evans <=> Fantastic 4: Rise of the Silver Surfer <=> andre braugher; andre braugher <=> Get on the Bus <=> bernie mac; bernie mac <=> What's the Worst That Could Happen? <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-41, chris evans <=> Sunshine <=> benedict wong; benedict wong <=> Dirty Pretty Things <=> sophie okonedo; sophie okonedo <=> Martian Child <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-42, chris evans <=> Sunshine <=> benedict wong; benedict wong <=> Dirty Pretty Things <=> sophie okonedo; sophie okonedo <=> Martian Child <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-43, chris evans <=> The Losers <=> jason patric; jason patric <=> The Lost Boys <=> dianne wiest; dianne wiest <=> I Am Sam <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-44, chris evans <=> The Losers <=> jason patric; jason patric <=> The Lost Boys <=> dianne wiest; dianne wiest <=> I Am Sam <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-45, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> The Devil's Advocate <=> al pacino; al pacino <=> People I Know <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-46, chris evans <=> Street Kings <=> keanu reeves; keanu reeves <=> The Devil's Advocate <=> al pacino; al pacino <=> People I Know <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-47, chris evans <=> Captain America: Civil War <=> robert downey jr.; robert downey jr. <=> Kiss Kiss Bang Bang <=> larry miller; larry miller <=> What's the Worst That Could Happen? <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-48, chris evans <=> Captain America: Civil War <=> robert downey jr.; robert downey jr. <=> Kiss Kiss Bang Bang <=> larry miller; larry miller <=> What's the Worst That Could Happen? <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 
-49, chris evans <=> Captain America: Civil War <=> robert downey jr.; robert downey jr. <=> The Soloist <=> stephen root; stephen root <=> Imagine That <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Sicko <=> bill clinton; 
-50, chris evans <=> Captain America: Civil War <=> robert downey jr.; robert downey jr. <=> The Soloist <=> stephen root; stephen root <=> Imagine That <=> richard schiff; richard schiff <=> Lucky Numbers <=> michael moore; michael moore <=> Bowling for Columbine <=> bill clinton; 

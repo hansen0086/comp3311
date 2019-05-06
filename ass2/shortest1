@@ -15,6 +15,9 @@ $end_name_id = actor_name_to_id($end_name);
 $q = "create or replace view degree_one as select zero.actor_id as actor_zero, one.movie_id as movie_zero_one, one.actor_id as actor_one from acting as zero join acting as one on zero.movie_id = one.movie_id where zero.actor_id = ".$start_name_id." and zero.actor_id != one.actor_id";
 $r = dbQuery($db,$q);
 $q = "select * from degree_one";
+
+
+
 $r = dbQuery($db, $q);
 while($t = dbNext($r)){
     if($t[2]==$end_name_id){
@@ -102,6 +105,7 @@ while($t = dbNext($r)){
         $degree=6;
     }  
 }
+
 
 if($degree!=0){
     print_final($id_strings, $degree);
